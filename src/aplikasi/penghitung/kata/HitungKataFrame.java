@@ -4,6 +4,13 @@
  */
 package aplikasi.penghitung.kata;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author ACER A314
@@ -15,7 +22,9 @@ public class HitungKataFrame extends javax.swing.JFrame {
      */
     public HitungKataFrame() {
         initComponents();
+        tambahDocumentListener(); // Tambahkan DocumentListener ke JTextArea
     }
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -59,8 +68,18 @@ public class HitungKataFrame extends javax.swing.JFrame {
         });
 
         btnSimpan.setText("Simpan");
+        btnSimpan.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSimpanActionPerformed(evt);
+            }
+        });
 
         btnCariKata.setText("Cari");
+        btnCariKata.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnCariKataActionPerformed(evt);
+            }
+        });
 
         lblJumlahKata.setFont(new java.awt.Font("sansserif", 1, 12)); // NOI18N
         lblJumlahKata.setText("jumlah kata");
@@ -165,28 +184,76 @@ public class HitungKataFrame extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    //mencegah fitur real time berjalan sebelum tombol hitung di tekan
+    private boolean hitungRealTimeAktif = false; 
+
+    
+    //gasan hiitung jumlah karakter, kata, kalimat n paragraf dengan memanggil method hitungrealtime
     private void btnHitungActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHitungActionPerformed
-    // Ambil teks dari JTextArea
-    String teks = txtInput.getText().trim();
+    hitungRealTimeAktif = true; // Aktifkan perhitungan real-time
+    hitungRealTime(); // Hitung teks saat ini
+    JOptionPane.showMessageDialog(this, "Perhitungan real-time diaktifkan.");
+    }//GEN-LAST:event_btnHitungActionPerformed
 
-    // Hitung jumlah karakter
-    int jumlahKarakter = teks.length();
+    //untuk cari jumlah dari kata tertentu
+    private void btnCariKataActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCariKataActionPerformed
+    String kataDicari = txtCariKata.getText().trim(); // Ambil kata dari JTextField
+    String teks = txtInput.getText(); // Ambil teks dari JTextArea
 
-    // Hitung jumlah kata
-    int jumlahKata = teks.isEmpty() ? 0 : teks.split("\\s+").length;
+    if (kataDicari.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Masukkan kata yang ingin dicari!");
+        return;
+    }
 
-    // Hitung jumlah kalimat (berdasarkan ".", "?", "!")
-    int jumlahKalimat = teks.isEmpty() ? 0 : teks.split("[.!?]").length;
+    // Pisahkan teks menjadi kata-kata
+    String[] kataArray = teks.split("\\W+"); // Split berdasarkan non-alfanumerik
 
-    // Hitung jumlah paragraf (berdasarkan "\n")
-    int jumlahParagraf = teks.isEmpty() ? 0 : teks.split("\\n").length;
+    // Hitung jumlah kemunculan kata
+    int jumlahKemunculan = 0;
+    for (String kata : kataArray) {
+        if (kata.equalsIgnoreCase(kataDicari)) { // Bandingkan tanpa case-sensitive
+            jumlahKemunculan++;
+        }
+    }
 
     // Tampilkan hasil di JLabel
-    lblJumlahKata.setText("Jumlah kata: " + jumlahKata);
-    lblJumlahKarakter.setText("Jumlah karakter: " + jumlahKarakter);
-    lblJumlahKalimat.setText("Jumlah kalimat: " + jumlahKalimat);
-    lblJumlahParagraf.setText("Jumlah paragraf: " + jumlahParagraf);
-    }//GEN-LAST:event_btnHitungActionPerformed
+    if (jumlahKemunculan > 0) {
+        lblHasilPencarian.setText("Kata ditemukan sebanyak: " + jumlahKemunculan + " kali");
+    } else {
+        lblHasilPencarian.setText("Kata tidak ditemukan.");
+    }
+    }//GEN-LAST:event_btnCariKataActionPerformed
+
+    //simpan data pencarian ke dalam file
+    private void btnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSimpanActionPerformed
+    String teks = txtInput.getText(); // Ambil teks dari JTextArea
+    int jumlahKata = teks.isEmpty() ? 0 : teks.split("\\s+").length;
+    int jumlahKarakter = teks.length();
+    int jumlahKalimat = teks.isEmpty() ? 0 : teks.split("[.!?]").length;
+    int jumlahParagraf = teks.isEmpty() ? 0 : teks.split("\\n").length;
+
+    // Gabungkan teks dan hasil perhitungan
+    String hasil = "Teks:\n" + teks + "\n\n" +
+                   "Hasil Perhitungan:\n" +
+                   "Jumlah Kata: " + jumlahKata + "\n" +
+                   "Jumlah Karakter: " + jumlahKarakter + "\n" +
+                   "Jumlah Kalimat: " + jumlahKalimat + "\n" +
+                   "Jumlah Paragraf: " + jumlahParagraf;
+
+    // Gunakan JFileChooser untuk menyimpan file
+    JFileChooser fileChooser = new JFileChooser();
+    int pilih = fileChooser.showSaveDialog(this);
+
+    if (pilih == JFileChooser.APPROVE_OPTION) {
+        File file = fileChooser.getSelectedFile();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write(hasil); // Tulis hasil ke file
+            JOptionPane.showMessageDialog(this, "File berhasil disimpan!");
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Terjadi kesalahan saat menyimpan file: " + e.getMessage());
+        }
+    }        // TODO add your handling code here:
+    }//GEN-LAST:event_btnSimpanActionPerformed
 
     /**
      * @param args the command line arguments
@@ -238,4 +305,44 @@ public class HitungKataFrame extends javax.swing.JFrame {
     private javax.swing.JTextField txtCariKata;
     private javax.swing.JTextArea txtInput;
     // End of variables declaration//GEN-END:variables
+    
+    //method tambahdocumentlistener
+    private void tambahDocumentListener() {
+    txtInput.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+        @Override
+        public void insertUpdate(javax.swing.event.DocumentEvent e) {
+            if (hitungRealTimeAktif) {
+                hitungRealTime();
+            }
+        }
+
+        @Override
+        public void removeUpdate(javax.swing.event.DocumentEvent e) {
+            if (hitungRealTimeAktif) {
+                hitungRealTime();
+            }
+        }
+
+        @Override
+        public void changedUpdate(javax.swing.event.DocumentEvent e) {
+            if (hitungRealTimeAktif) {
+                hitungRealTime();
+            }
+        }
+    });
+    }
+    
+    //method hitung realtime
+    private void hitungRealTime() {
+    String teks = txtInput.getText().trim();
+    int jumlahKarakter = teks.length();
+    int jumlahKata = teks.isEmpty() ? 0 : teks.split("\\s+").length;
+    int jumlahKalimat = teks.isEmpty() ? 0 : teks.split("[.!?]").length;
+    int jumlahParagraf = teks.isEmpty() ? 0 : teks.split("\\n").length;
+
+    lblJumlahKata.setText("Jumlah kata: " + jumlahKata);
+    lblJumlahKarakter.setText("Jumlah karakter: " + jumlahKarakter);
+    lblJumlahKalimat.setText("Jumlah kalimat: " + jumlahKalimat);
+    lblJumlahParagraf.setText("Jumlah paragraf: " + jumlahParagraf);
+    }
 }
